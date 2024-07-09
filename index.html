@@ -3,15 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Maryland Crime Rate</title>
+    <title>Maryland Murder Rate by Jurisdiction</title>
     <style>
       .bar {
         fill: steelblue;
-      }
-      .line {
-        fill: none;
-        stroke: red;
-        stroke-width: 2;
       }
       .tooltip {
         position: absolute;
@@ -28,14 +23,14 @@
     </style>
   </head>
   <body>
-    <h1>Maryland Crime Rate in 2019</h1>
-    <svg id="svg" width="800" height="600"></svg>
+    <h1>Maryland Murder Rate by Jurisdiction</h1>
+    <svg id="svg" width="1800" height="600"></svg>
     <div class="tooltip" id="tooltip"></div>
     <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
     <script>
       // Set dimensions/margins of graph
-      const margin = { top: 20, right: 30, bottom: 50, left: 70 };
-      const width = 800 - margin.left - margin.right;
+      const margin = { top: 20, right: 30, bottom: 100, left: 30 };
+      const width = 1800 - margin.left - margin.right;
       const height = 600 - margin.top - margin.bottom;
 
       const svg = d3
@@ -46,86 +41,81 @@
         .attr("transform", `translate(${margin.left},${margin.top})`)
         .style("background-color", "white");
 
-      d3.csv("data_lib.csv").then((data) => {
-        console.log("Raw Data:", data);
-        // Filter data for the year 2019 and parse numbers
-        const filteredData = data
-          .filter((d) => d.Year === "2019")
-          .map((d) => ({
-            Month: d.Month,
-            Murder: +d.Murder,  
-          }));
+      d3.csv("data_lib.csv")
+        .then((data) => {
+          // console.log("Raw Data:", data); // Check raw data
 
-        if (filteredData.length === 0) {
-          console.error("No data for the year 2016");
-          return;
-        }
-
-        // Create scales
-        const xScale = d3
-          .scaleBand()
-          .domain(filteredData.map((d) => d.Month))
-          .range([0, width])
-          .padding(0.1);
-
-        const yScale = d3
-          .scaleLinear()
-          .domain([0, d3.max(filteredData, (d) => d.Murder) || 0])
-          .nice()
-          .range([height, 0]);
-
-        // x-axis
-        svg
-          .append("g")
-          .attr("transform", `translate(0, ${height})`)
-          .call(d3.axisBottom(xScale));
-
-        // y-axis
-        svg.append("g").call(d3.axisLeft(yScale));
-
-        // Line for Murder
-        const line = d3
-          .line()
-          .x((d) => xScale(d.Month) + xScale.bandwidth() / 2)
-          .y((d) => yScale(d.Murder));
-
-        svg
-          .append("path")
-          .datum(filteredData)
-          .attr("class", "line")
-          .attr("d", line);
-
-        // Tooltip
-        const tooltip = d3.select("#tooltip");
-
-        svg
-          .selectAll("circle")
-          .data(filteredData)
-          .enter()
-          .append("circle")
-          .attr("cx", (d) => xScale(d.Month) + xScale.bandwidth() / 2)
-          .attr("cy", (d) => yScale(d.Murder))
-          .attr("r", 5)
-          .attr("fill", "yellow")
-          .on("mouseover", (event, d) => {
-            tooltip.transition().duration(200).style("opacity", 0.9);
-            tooltip
-              .html(`Month: ${d.Month}<br>Murder: ${d.Murder}`)
-              .style("left", event.pageX + 5 + "px")
-              .style("top", event.pageY - 28 + "px");
-          })
-          .on("mousemove", (event) => {
-            tooltip
-              .style("left", event.pageX + 5 + "px")
-              .style("top", event.pageY - 28 + "px");
-          })
-          .on("mouseout", () => {
-            tooltip.transition().duration(500).style("opacity", 0);
+          // Parse numbers and log the data
+          data.forEach((d) => {
+            d.MURDER = +d.MURDER;
+            // console.log(d);
           });
-      });
-      // .catch((error) => {
-      //   console.error("Error loading or parsing data:", error);
-      // });
+
+          // Create scales
+          const xScale = d3
+            .scaleBand()
+            .domain(data.map((d) => d.JURISDICTION))
+            .range([0, width])
+            .padding(0.1);
+
+          const yScale = d3
+            .scaleLinear()
+            .domain([0, d3.max(data, (d) => d.MURDER) || 0])
+            .nice()
+            .range([height, 0]);
+
+          // console.log("X Scale Domain:", xScale.domain()); // Check x-scale domain
+          // console.log("Y Scale Domain:", yScale.domain()); // Check y-scale domain
+
+          // x-axis
+          const xaxis = svg
+            .append("g")
+            .attr("transform", `translate(0, ${height})`)
+            .call(d3.axisBottom(xScale))
+            .selectAll("text")
+            .style("text-anchor", "end")
+            .attr("dx", "-.8em")
+            .attr("dy", ".15em")
+            .attr("transform", "rotate(-65)");
+          console.log(xaxis);
+          
+          // y-axis
+          const yaxis = svg.append("g").call(d3.axisLeft(yScale));
+
+          // Bars for Murder
+          svg
+            .selectAll(".bar")
+            .data(data)
+            .enter()
+            .append("rect")
+            .attr("class", "bar")
+            .attr("x", (d) => xScale(d.JURISDICTION))
+            .attr("y", (d) => yScale(d.MURDER))
+            .attr("width", xScale.bandwidth())
+            .attr("height", (d) => height - yScale(d.MURDER))
+            .attr("fill", "steelblue")
+            .on("mouseover", (event, d) => {
+              tooltip.transition().duration(200).style("opacity", 0.9);
+              tooltip
+                .html(`Jurisdiction: ${d.JURISDICTION}<br>Murder: ${d.MURDER}`)
+                .style("left", event.pageX + 5 + "px")
+                .style("top", event.pageY - 28 + "px");
+            })
+            .on("mousemove", (event) => {
+              tooltip
+                .style("left", event.pageX + 5 + "px")
+                .style("top", event.pageY - 28 + "px");
+            })
+            .on("mouseout", () => {
+              tooltip.transition().duration(500).style("opacity", 0);
+            });
+
+          // Tooltip
+          const tooltip = d3.select("#tooltip");
+        })
+        .catch((error) => {
+          console.error("Error loading or parsing data:", error);
+        });
     </script>
   </body>
 </html>
